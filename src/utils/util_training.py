@@ -19,6 +19,7 @@ class LOBCAST_NNEngine(pl.LightningModule):
         self.wandb_log = wandb_log
         self.training_step_outputs = []
         self.validation_step_outputs = []
+        self.test_step_outputs = []
 
     def log_wandb(self, metrics):
         if self.wandb_log:
@@ -42,6 +43,7 @@ class LOBCAST_NNEngine(pl.LightningModule):
 
     def test_step(self, batch, batch_idx):
         prediction_ind, y, loss_val, logits = self.make_predictions(batch)
+        self.test_step_outputs.append((prediction_ind, y, loss_val, logits))
         return prediction_ind, y, loss_val, logits
 
     def make_predictions(self, batch):
@@ -95,7 +97,7 @@ class LOBCAST_NNEngine(pl.LightningModule):
             print("First output content:", outputs[0])
 
         # Put your existing training_epoch_end logic here
-        training_step_outputs = [batch["other"] for batch in outputs]
+        #training_step_outputs = [batch["other"] for batch in outputs]
         self.evaluate_classifier(cst.ModelSteps.TRAINING.value, outputs)
         # Clear the outputs list for the next epoch
         self.training_step_outputs = []
@@ -109,8 +111,13 @@ class LOBCAST_NNEngine(pl.LightningModule):
         # Clear the outputs list for the next epoch
         self.validation_step_outputs = []
 
-    def test_epoch_end(self, test_step_outputs):
-        self.evaluate_classifier(cst.ModelSteps.TESTING.value, test_step_outputs)
+
+    def on_test_epoch_end(self):
+        # Process all outputs here
+        outputs = self.test_step_outputs
+        self.evaluate_classifier(cst.ModelSteps.TESTING.value, outputs)
+        # Clear the outputs list for the next epoch
+        self.test_step_outputs.clear()
 
     def __get_prediction_vectors(self, model_output):
         """ Accumulates the models output after each validation and testing epoch end. """
