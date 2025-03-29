@@ -35,6 +35,11 @@ class BiN(nn.Module):
         nn.init.constant_(self.y2, 0.5)
 
     def forward(self, x):
+        # Ensure device consistency
+        device = x.device  # Get the device of the input tensor
+        print(
+            f"Davice: {device}, Davice Nume: {torch.cuda.get_device_name(device) if device.type == 'cuda' else 'CPU'}")
+
 
         # if the two scalars are negative then we setting them to 0
         if (self.y1[0] < 0):
@@ -57,7 +62,11 @@ class BiN(nn.Module):
         # it can be possible that the std of some temporal slices is 0, and this produces inf values, so we have to set them to one
         std[std < 1e-4] = 1
 
+        #device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+        x2 = x2.to(device)
+        T2 = T2.to(device)
         diff = x - (x2 @ (T2.T))
+
         Z2 = diff / (std @ (T2.T))
 
         X2 = self.l2 @ T2.T
@@ -71,6 +80,9 @@ class BiN(nn.Module):
 
         std = torch.std(x, dim=1)
         std = torch.reshape(std, (std.shape[0], std.shape[1], 1))
+
+        x1 = x1.to(device)
+        T1 = T1.to(device)
 
         op1 = x1 @ T1.T
         op1 = torch.permute(op1, (0, 2, 1))
@@ -118,6 +130,9 @@ class TABL_layer(nn.Module):
 
     def forward(self, X):
 
+        device = X.device  # Get the device of the input tensor
+        print(
+            f"Davice: {device},TABL Davice Nume: {torch.cuda.get_device_name(device) if device.type == 'cuda' else 'CPU'}")
         # maintaining the weight parameter between 0 and 1.
         if (self.l[0] < 0):
             l = torch.Tensor(1, )
@@ -133,7 +148,7 @@ class TABL_layer(nn.Module):
         X = self.W1 @ X
 
         # enforcing constant (1) on the diagonal
-        W = self.W - self.W * torch.eye(self.t1, dtype=torch.float32) + torch.eye(self.t1, dtype=torch.float32) / self.t1
+        W = self.W - self.W * torch.eye(self.t1, dtype=torch.float32,device=device) + torch.eye(self.t1, dtype=torch.float32,device=device) / self.t1
 
         # attention, the aim of the second step is to learn how important the temporal instances are to each other (8)
         E = X @ W

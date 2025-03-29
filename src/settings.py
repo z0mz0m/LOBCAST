@@ -55,7 +55,7 @@ class Settings:
         """ The path to the model to test. """
 
         self.DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
-        self.N_GPUs = None if self.DEVICE == 'cpu' else torch.cuda.device_count()
+        self.N_GPUs = 1 if self.DEVICE == 'cuda' else 1  # Always set to 1, not None
         self.N_CPUs = multiprocessing.cpu_count()
 
         self.DIR_EXPERIMENTS = ""
